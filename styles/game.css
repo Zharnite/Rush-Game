@@ -1,0 +1,35 @@
+* {
+	box-sizing: border-box;
+}
+
+#game {
+	width: 480px;
+	height:320px;
+	position: relative;
+	overflow: hidden;
+}
+.scene {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	background: #b0d0d8;
+	text-align: center;
+
+	transform: translate3d(0,100%,0); 
+	transition: transform 0.3s ease-out;
+}
+.scene.active {
+	transform: translate3d(0,0,0);
+}
+.scene a {
+	padding: : 1em;
+	background: #619391;
+	color: white;
+	text-decoration: none;
+	display: inline-block;
+}
+.scene a:hover {
+	background: #466b6a;
+}

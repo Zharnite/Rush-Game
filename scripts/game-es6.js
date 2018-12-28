@@ -1,3 +1,57 @@
+class SceneManager {
+	constructor() {
+		this.menuScene = document.getElementById('menu');
+		this.gameScene = document.getElementById('game-canvas');
+		this.gameOverScene = document.getElementById('gameover');
+
+		this.startButton = document.getElementById('start-game-button');
+		this.restartButton = document.getElementById('restart-game-button');
+		this.exitButton = document.getElementById('exit-button');
+
+		this.handlePlayerClick();
+	}
+	startGame() {
+		this.menuScene.classList.remove('active');
+		this.gameOverScene.classList.remove('active');
+		//this.gameScene.classList.add('active');
+	}
+	showMenu() {
+		//this.gameScene.classList.remove('active');
+		this.gameOverScene.classList.remove('active');
+		this.menuScene.classList.add('active');
+	}
+	gameOver() {
+		//this.menuScene.classList.remove('active');
+		//this.gameScene.classList.remove('active');
+		this.gameOverScene.classList.add('active');
+		//createjs.Container.tickChildren = false;
+		
+	}
+	handlePlayerClick() {
+		var manager = this;
+		this.startButton.onclick = function(e) {
+			manager.startGame();
+			game.restartGame();
+
+			e.preventDefault();
+			return false;
+		}
+
+		this.exitButton.onclick = function(e) {
+			manager.showMenu();
+			e.preventDefault();
+			return false;
+		}
+
+		this.restartButton.onclick = function(e) {
+			manager.startGame();
+			game.restartGame();
+			e.preventDefault();
+			return false;
+		}
+	}
+}
+
 class LevelData {
 	constructor() {
 		this.levels = [
@@ -115,6 +169,7 @@ class World extends createjs.Container {
 		this.levelData = new LevelData();
 		this.scoreCalculator = new ScoreCalculator();
 		this.currentLevel = 0;
+		this.gameOverCheck = false;
 
 		this.on("tick", this.tick);
 
@@ -136,6 +191,7 @@ class World extends createjs.Container {
 		var hitEnemy = this.targetHitTestObjects(this.hero, this.enemies);
 		if(hitEnemy !== false) {
 			console.log("hit: ", hitEnemy);
+			game.gameOver();
 		}
 
 		var hitCoin = this.targetHitTestObjects(this.hero, this.coins);
@@ -145,6 +201,11 @@ class World extends createjs.Container {
 			this.scoreCalculator.increaseScore(this.currentLevel);
 			console.log(this.scoreCalculator.score);
 			console.log(this.currentLevel);
+		}
+
+		if(this.hero.y > game.stage.height && this.gameOverCheck === false) {
+			game.gameOver();
+			this.gameOverCheck = true;
 		}
 
 		//focus on hero
@@ -339,6 +400,7 @@ class Game {
 		// keep re-drawing the stage at the above FPS rate
 		createjs.Ticker.on("tick", this.stage);
 
+		this.gameLoaded = false;
 		this.loadGraphics();
 
 	}
@@ -366,11 +428,13 @@ class Game {
 				ss[ssMetadata[i].name] = new createjs.SpriteSheet( {"images": [queue.getResult(ssMetadata[i].name)], "frames": ssMetadata[i].frames} )
 			}
 
-			this.restartGame();
+			this.gameLoaded = true;
 			
 		}
 	}
 	restartGame() {
+		this.stage.removeAllChildren();
+
 		//background
 		this.stage.addChild(new lib.BackgroundGraphic());
 
@@ -382,6 +446,9 @@ class Game {
 			hero.jump();
 		});
 
+	}
+	gameOver() {
+		sceneManager.gameOver();
 	}
 	retinalize() {
 		this.stage.width = this.canvas.width;
@@ -405,5 +472,7 @@ class Game {
 	}
 }
 
+
 // start the game
 var game = new Game();
+var sceneManager = new SceneManager();

@@ -9,9 +9,17 @@
 </head>
 <body>
 	<div id="game">
-		<canvas id="game-canvas" width="400" height="320">
-			
+		<canvas id="game-canvas" class="active scene" width="480" height="320">
+			An interactive game.
 		</canvas>
+		<div id="menu" class="active scene">
+			<a href="#game-canvas" id="start-game-button">Start Game</a>
+			<p>About: HTML5 game</p>
+		</div>
+		<div id="gameover" class="scene">
+			<a href="#game-canvas" id="restart-game-button">Restart Game</a>
+			<a href="#menu" id="exit-button">Exit to Menu</a>
+		</div>
 	</div>
 	<script src="https://code.createjs.com/1.0.0/createjs.min.js"></script>
 	<script src="scripts/rush-game-graphics.js"></script>
