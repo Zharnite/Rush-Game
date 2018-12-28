@@ -1,3 +1,25 @@
+class LevelData {
+	constructor() {
+		this.levels = [
+			{gapX:0, gapY:30, widthDiff:0, total:5, coinChance:0.4,enemyChance:0.2}, 
+			{gapX:10, gapY:30, widthDiff:30, total:10, coinChance:0.6,enemyChance:0.3},
+			{gapX:20, gapY:30, widthDiff:30, total:10, coinChance:0.6,enemyChance:0.2},
+			{gapX:40, gapY:40, widthDiff:100, total:50, coinChance:0.8,enemyChance:0},
+			{gapX:20, gapY:30, widthDiff:30, total:100, coinChance:0.6,enemyChance:0.4},
+		];
+	}
+}
+
+class ScoreCalculator {
+	constructor() {
+		this.score = 0;
+
+	}
+	increaseScore(level) {
+		this.score += ((level+1) * (level+1));
+	}
+}
+
 class GameObject extends createjs.Container {
 	constructor(graphic) {
 		super();
@@ -81,11 +103,18 @@ class Platform extends GameObject {
 	constructor() {
 		super(new lib.PlatformGraphic());
 	}
+	setClippingWidth(width) {
+		this.graphic.instance.mask = new createjs.Shape(new createjs.Graphics().beginFill("#000").drawRect(0,0,width,this.getBounds().height));
+		this.setBounds(this.x, this.y, width, this.getBounds().height);
+	}
 }
 
 class World extends createjs.Container {
 	constructor() {
 		super();
+		this.levelData = new LevelData();
+		this.scoreCalculator = new ScoreCalculator();
+		this.currentLevel = 0;
 
 		this.on("tick", this.tick);
 
@@ -95,21 +124,11 @@ class World extends createjs.Container {
 		this.coins = [];
 
 		this.generatePlatforms();
+		this.generateEnemies();
+		this.generateCoins();
 		this.addHero();
 		this.hero.run();
 
-		//testing code
-		var enemy = new Enemy();
-		enemy.x = 300;
-		enemy.y = 290;
-		this.addChild(enemy);
-		this.enemies.push(enemy);
-
-		var coin = new Coin();
-		coin.x = 360;
-		coin.y = 290;
-		this.addChild(coin);
-		this.coins.push(coin);
 	}
 	tick() {
 		this.applyGravity();
@@ -123,6 +142,9 @@ class World extends createjs.Container {
 		if(hitCoin !== false) {
 			console.log("hit: ", hitCoin);
 			this.eatCoin(hitCoin);
+			this.scoreCalculator.increaseScore(this.currentLevel);
+			console.log(this.scoreCalculator.score);
+			console.log(this.currentLevel);
 		}
 
 		//focus on hero
@@ -136,18 +158,64 @@ class World extends createjs.Container {
 		this.hero = hero;
 	}
 	generatePlatforms() {
-		var platform = new Platform();
-		platform.x = 100;
-		platform.y = 300;
-		this.platforms.push(platform);
-		this.addChild(platform);
+		var nextX = 100;
+		var nextY= 200;
 
-		//second platform
-		platform = new Platform();
-		platform.x = 250;
-		platform.y = 300;
-		this.platforms.push(platform);
-		this.addChild(platform);
+		var levelNumber = 0;
+		for(var level of this.levelData.levels) {
+			for(var i = 0; i < level.total; i++) {
+				var platform = new Platform();
+				platform.x = nextX;
+				platform.y = nextY;
+
+				var width = platform.getBounds().width;
+				platform.setClippingWidth(width - Math.random() * level.widthDiff);
+
+				platform.levelNumber = levelNumber;
+				//console.log(platform.levelNumber);
+
+				this.platforms.push(platform);
+
+				nextX = platform.x + platform.getBounds().width + Math.random() * level.gapX;
+				nextY = platform.y + (Math.random() - 0.5) * level.gapY;
+
+				this.addChild(platform);
+			}
+			levelNumber += 1;
+			//console.log(levelNumber);
+		}
+
+		
+	}
+	generateEnemies() {
+		for(var i = 2; i < this.platforms.length; i++) {
+			var platform = this.platforms[i];
+			var levelNumber = platform.levelNumber;
+			var chance = this.levelData.levels[levelNumber].enemyChance;
+
+			if(Math.random() < chance) {
+				var enemy = new Enemy();
+				enemy.x = platform.x + platform.getBounds().width/2;
+				enemy.y = platform.y - enemy.getBounds().height;
+				this.enemies.push(enemy);
+				this.addChild(enemy);
+			}
+		}
+	}
+	generateCoins() {
+		for(var platform of this.platforms) {
+			var levelNumber = platform.levelNumber;
+			//console.log(levelNumber);
+			var chance = this.levelData.levels[levelNumber].coinChance;
+
+			if(Math.random() < chance) {
+				var coin = new Coin();
+				coin.x = platform.x + Math.random() * platform.getBounds().width;
+				coin.y = platform.y - coin.getBounds().height;
+				this.coins.push(coin);
+				this.addChild(coin);
+			}
+		}
 	}
 	eatCoin(coin) {
 		for(var i = 0; i < this.coins.length; i++) {
@@ -168,7 +236,12 @@ class World extends createjs.Container {
 		if(this.willObjectOnGround(object)) {
 			object.velocity.y = 1;
 		}
-		if(this.isObjectOnGround(object) && object.velocity.y > 0) {
+		var platform = this.isObjectOnGround(object);
+		if(platform !== false && object.velocity.y > 0) {
+			this.currentLevel = platform.levelNumber;
+			//console.log(platform);
+			//console.log(platform.levelNumber);
+			//console.log(this.currentLevel);
 			object.velocity.y = 0;
 			object.run();
 		}
@@ -193,9 +266,9 @@ class World extends createjs.Container {
 		var w2 = object2.getBounds().width;
 		var h2 = object2.getBounds().height;
 
-		if(x1 > (x2 + h2 - 1) ||
+		if(x1 > (x2 + w2 - 1) ||
 			y1 > (y2 + h2 - 1) ||
-			x2 > (x1 + h1 - 1) ||
+			x2 > (x1 + w1 - 1) ||
 			y2 > (y1 + h1 - 1)) {
 			return false;
 		}
@@ -215,7 +288,7 @@ class World extends createjs.Container {
 				object.y + objectHeight >= platform.y &&
 				object.y + objectHeight <= platform.y + platformHeight
 			) {
-				return true;
+				return platform;
 			}
 		}
 		return false;
@@ -260,7 +333,7 @@ class Game {
 		// enable retina screen
 		this.retinalize();
 
-		createjs.Ticker.framerate = 20;
+		createjs.Ticker.framerate = 30;
 
 
 		// keep re-drawing the stage at the above FPS rate
