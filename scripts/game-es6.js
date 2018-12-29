@@ -3,7 +3,10 @@ class SceneManager {
 		this.menuScene = document.getElementById('menu');
 		this.gameScene = document.getElementById('game-canvas');
 		this.gameOverScene = document.getElementById('gameover');
+		this.hud = document.getElementById('hud');
+		this.finalScore = document.getElementById('final-score');
 
+		this.scoreText = document.getElementById('score-text');
 		this.startButton = document.getElementById('start-game-button');
 		this.restartButton = document.getElementById('restart-game-button');
 		this.exitButton = document.getElementById('exit-button');
@@ -13,19 +16,27 @@ class SceneManager {
 	startGame() {
 		this.menuScene.classList.remove('active');
 		this.gameOverScene.classList.remove('active');
-		//this.gameScene.classList.add('active');
+		this.showHud();
+		this.setGameScore(0);
 	}
 	showMenu() {
 		//this.gameScene.classList.remove('active');
 		this.gameOverScene.classList.remove('active');
 		this.menuScene.classList.add('active');
 	}
+	showHud() {
+		this.hud.classList.add('active');
+	}
+	hideHud() {
+		this.hud.classList.remove('active');
+	}
+	setGameScore(score) {
+		this.scoreText.textContent = score;
+	}
 	gameOver() {
-		//this.menuScene.classList.remove('active');
-		//this.gameScene.classList.remove('active');
 		this.gameOverScene.classList.add('active');
-		//createjs.Container.tickChildren = false;
-		
+		this.hideHud();
+		this.finalScore.textContent = this.scoreText.textContent; 
 	}
 	handlePlayerClick() {
 		var manager = this;
@@ -189,9 +200,10 @@ class World extends createjs.Container {
 		this.applyGravity();
 
 		var hitEnemy = this.targetHitTestObjects(this.hero, this.enemies);
-		if(hitEnemy !== false) {
+		if(hitEnemy !== false && this.gameOverCheck === false) {
 			console.log("hit: ", hitEnemy);
 			game.gameOver();
+			this.gameOverCheck = true;
 		}
 
 		var hitCoin = this.targetHitTestObjects(this.hero, this.coins);
@@ -201,6 +213,7 @@ class World extends createjs.Container {
 			this.scoreCalculator.increaseScore(this.currentLevel);
 			console.log(this.scoreCalculator.score);
 			console.log(this.currentLevel);
+			sceneManager.setGameScore(this.scoreCalculator.score);
 		}
 
 		if(this.hero.y > game.stage.height && this.gameOverCheck === false) {
